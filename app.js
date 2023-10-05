@@ -25,8 +25,33 @@ const UserSchema = new mongoose.Schema({
 		unique: true,
 	},
 });
+
+
+
 const User = mongoose.model('users', UserSchema);
 User.createIndexes();
+
+const MenuItemSchema = new mongoose.Schema({
+	name: {
+	  type: String,
+	  required: true,
+	},
+	description: {
+	  type: String,
+	  unique: false, // Allow multiple documents to have null descriptions
+	},
+	price: {
+	  type: Number,
+	  required: true,
+	},
+  });
+  
+MenuItemSchema.index({ name: 1, description: 1 }, { unique: true, partialFilterExpression: { description: { $exists: true } } });
+  
+
+const MenuItem = mongoose.model('menuItems', MenuItemSchema);
+MenuItem.createIndexes();
+
 
 const express = require('express');
 const app = express();
@@ -40,6 +65,7 @@ app.get("/", (req, resp) => {
 	resp.send("App is Working");
 });	
 	
+
 app.post('/register', async (req, res) => {
 	try {
 	  const { login, password } = req.body;
@@ -66,16 +92,54 @@ app.post('/register', async (req, res) => {
 	  console.error('Error:', e);
 	  return res.status(500).send('Something Went Wrong');
 	}
-  });
+});
+
+
+
+app.get('/get-user', async (req, res) => {
+	try {
+	  const { login, password } = req.body;
   
-
+	  const user = await User.findOne({ login, password });
   
+	  if (user) {
+		const sanitizedUser = user.toObject();
+		res.json(sanitizedUser);
+	  } else {
+		console.log('User not found or incorrect password');
+		res.status(404).json({ error: 'User not found or incorrect password' });
+	  }
+	} catch (error) {
+	  console.log(`Error: ${error}`);
+	  res.status(500).json({ error: 'Error getting user' });
+	}
+});
 
 
-
-
+app.post('/add-menu-item', async (req, res) => {
+	try {
+	  const { name, description, price } = req.body;
   
-  
+	  const menuItem = new MenuItem({ name, description, price });
+	  const result = await menuItem.save();
+	  
+	  if (result) {
+		return res.json({
+		  message: 'Menu item added successfully',
+		  menuItem: result,
+		});
+	  } else {
+		return res.status(400).send('Failed to add menu item');
+	  }
+	} catch (error) {
+	  console.error('Error:', error);
+	  return res.status(500).send('Something Went Wrong');
+	}
+});
+
+
+
+
   
 
 app.listen(5000);
