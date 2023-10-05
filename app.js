@@ -138,8 +138,38 @@ app.post('/add-menu-item', async (req, res) => {
 });
 
 
-
+app.get('/all-menu-item', async (req, res) => {
+	try {
+	  const allMenuItems = await MenuItem.find();
+	  res.json(allMenuItems);
+	} catch (error) {
+	  console.error('Error:', error);
+	  res.status(500).send('Something Went Wrong');
+	}
+});
 
   
+app.get('/menu-items/:id', async (req, res) => {
+	const menuItemId = req.params.id;
+	
+	try {
+	  if (menuItemId) {
+		const menuItem = await MenuItem.findById(menuItemId);
+		if (menuItem) {
+		  return res.json(menuItem);
+		} else {
+		  return res.status(404).json({ error: 'Menu item not found' });
+		}
+	  } else {
+		const allMenuItems = await MenuItem.find();
+		res.json(allMenuItems);
+	  }
+	} catch (error) {
+	  console.error('Error:', error);
+	  res.status(500).send('Something Went Wrong');
+	}
+  });
 
+  
+  
 app.listen(5000);
