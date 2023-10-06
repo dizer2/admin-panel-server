@@ -135,6 +135,15 @@ app.get('/get-user', async (req, res) => {
 	}
 });
 
+app.get("/get-all-users", async (req, res) => {
+	try {
+		const allUsers = await User.find();
+		res.json(allUsers);
+	} catch (error) {
+		console.error("Error", error);
+		res.status(500).send("Something Went Wrong");
+	}
+});
 
 app.post('/add-menu-item', async (req, res) => {
 	try {
