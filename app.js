@@ -231,8 +231,37 @@ app.get('/menu-items/:id', async (req, res) => {
 	}
   });
   
+  app.post('/remove-iteam-cart/:login/:itemId', async (req, res) => {
+	const login = req.params.login;
+	const itemId = req.params.itemId;
   
-
+	try {
+	  const user = await User.findOne({ login });
+	  if (!user) {
+		return res.status(404).json({ error: 'User not found' });
+	  }
+  
+	  // Find the index of the item to remove in the user's cart
+	  const itemIndex = user.cart.findIndex((cartItem) => cartItem._id.toString() === itemId);
+  
+	  if (itemIndex !== -1) {
+		// Remove the item from the user's cart
+		user.cart.splice(itemIndex, 1);
+  
+		// Save the updated user object to the database
+		await user.save();
+  
+		// Return the updated user object
+		res.json(user);
+	  } else {
+		return res.status(404).json({ error: 'Menu item not found in the cart' });
+	  }
+	} catch (error) {
+	  console.error('Error:', error);
+	  res.status(500).send('Something Went Wrong');
+	}
+  });
+  
   
 
 app.listen(5000);
