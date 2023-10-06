@@ -24,6 +24,18 @@ const UserSchema = new mongoose.Schema({
 		required: true,
 		unique: true,
 	},
+	cart: [
+		{
+		  _id: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: 'MenuItem',
+		  },
+		  name: String,
+		  description: String,
+		  price: Number,
+		  amount: Number, 
+		},
+	  ],
 });
 
 
@@ -44,6 +56,10 @@ const MenuItemSchema = new mongoose.Schema({
 	  type: Number,
 	  required: true,
 	},
+	amount: {
+		type: Number,
+		required: true,
+	  },
   });
   
 MenuItemSchema.index({ name: 1, description: 1 }, { unique: true, partialFilterExpression: { description: { $exists: true } } });
@@ -68,7 +84,7 @@ app.get("/", (req, resp) => {
 
 app.post('/register', async (req, res) => {
 	try {
-	  const { login, password } = req.body;
+	  const { login, password, cart } = req.body;
   
 	  const existingUser = await User.findOne({ login });
   
@@ -76,7 +92,7 @@ app.post('/register', async (req, res) => {
 		return res.status(400).json({ error: 'User with this login already exists' });
 	  }
   
-	  const user = new User({ login, password });
+	  const user = new User({ login, password, cart: [] });
 	  let result = await user.save();
   
 	  result = result.toObject();
@@ -118,9 +134,9 @@ app.get('/get-user', async (req, res) => {
 
 app.post('/add-menu-item', async (req, res) => {
 	try {
-	  const { name, description, price } = req.body;
+	  const { name, description, price, amount } = req.body;
   
-	  const menuItem = new MenuItem({ name, description, price });
+	  const menuItem = new MenuItem({ name, description, price, amount });
 	  const result = await menuItem.save();
 	  
 	  if (result) {
@@ -170,6 +186,53 @@ app.get('/menu-items/:id', async (req, res) => {
 	}
   });
 
+  app.post('/add-to-cart/:login/:itemId', async (req, res) => {
+	const login = req.params.login;
+	const itemId = req.params.itemId;
+  
+	try {
+	  const user = await User.findOne({ login });
+	  if (!user) {
+		return res.status(404).json({ error: 'User not found' });
+	  }
+  
+	  const menuItem = await MenuItem.findOne({ _id: itemId });
+	  if (!menuItem) {
+		return res.status(404).json({ error: 'Menu item not found' });
+	  }
+  
+	  // Check if the item already exists in the user's cart
+	  const existingCartItemIndex = user.cart.findIndex(
+		(cartItem) => cartItem._id.toString() === itemId
+	  );
+  
+	  if (existingCartItemIndex !== -1) {
+		// Item exists; increase the amount
+		user.cart[existingCartItemIndex].amount++;
+	  } else {
+		// Item does not exist; add it as a new entry with amount 1
+		user.cart.push({
+		  _id: menuItem._id,
+		  name: menuItem.name,
+		  description: menuItem.description,
+		  price: menuItem.price,
+		  amount: 1,
+		});
+	  }
+  
+	  // Save the updated user object to the database
+	  await user.save();
+  
+	  // Return the updated user object
+	  res.json(user);
+	} catch (error) {
+	  console.error('Error:', error);
+	  res.status(500).send('Something Went Wrong');
+	}
+  });
   
   
+
+  
+
 app.listen(5000);
