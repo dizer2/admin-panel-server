@@ -22,8 +22,7 @@ const UserSchema = new mongoose.Schema({
 	password: {
 		type: String,
 		required: true,
-		unique: true,
-	},
+	  },
 	cart: [
 		{
 		  _id: {
@@ -34,6 +33,7 @@ const UserSchema = new mongoose.Schema({
 		  description: String,
 		  price: Number,
 		  amount: Number, 
+		  status: String
 		},
 	  ],
 });
@@ -50,7 +50,7 @@ const MenuItemSchema = new mongoose.Schema({
 	},
 	description: {
 	  type: String,
-	  unique: false, // Allow multiple documents to have null descriptions
+	  unique: false, 
 	},
 	price: {
 	  type: Number,
@@ -58,6 +58,10 @@ const MenuItemSchema = new mongoose.Schema({
 	},
 	amount: {
 		type: Number,
+		required: true,
+	  },
+	status: {
+		type: String,
 		required: true,
 	  },
   });
@@ -84,7 +88,7 @@ app.get("/", (req, resp) => {
 
 app.post('/register', async (req, res) => {
 	try {
-	  const { login, password, cart } = req.body;
+	  const { login, password } = req.body;
   
 	  const existingUser = await User.findOne({ login });
   
@@ -134,9 +138,9 @@ app.get('/get-user', async (req, res) => {
 
 app.post('/add-menu-item', async (req, res) => {
 	try {
-	  const { name, description, price, amount } = req.body;
+	  const { name, description, price, amount, status } = req.body;
   
-	  const menuItem = new MenuItem({ name, description, price, amount });
+	  const menuItem = new MenuItem({ name, description, price, amount, status });
 	  const result = await menuItem.save();
 	  
 	  if (result) {
@@ -211,14 +215,19 @@ app.get('/menu-items/:id', async (req, res) => {
 		user.cart[existingCartItemIndex].amount++;
 	  } else {
 		// Item does not exist; add it as a new entry with amount 1
+		console.log(menuItem);
 		user.cart.push({
-		  _id: menuItem._id,
-		  name: menuItem.name,
-		  description: menuItem.description,
-		  price: menuItem.price,
-		  amount: 1,
-		});
+			_id: menuItem._id,
+			name: menuItem.name,
+			description: menuItem.description,
+			price: menuItem.price,
+			status: menuItem.status,
+			amount: 1,
+		  });
+		  
 	  }
+	  console.log('Added to cart:', user.cart);
+
   
 	  // Save the updated user object to the database
 	  await user.save();
@@ -261,6 +270,49 @@ app.get('/menu-items/:id', async (req, res) => {
 	  res.status(500).send('Something Went Wrong');
 	}
   });
+
+
+
+  app.post('/admin/change-status/:login/:itemId', async (req, res) => {
+	const login = req.params.login;
+	const itemId = req.params.itemId;
+  
+	try { 
+	  // Find the user 
+	  const user = await User.findOne({ login });
+	  if (!user) {
+		return res.status(404).json({ error: 'User not found' });
+	  }
+  
+	  // Find the item in the user's cart
+	  const existingCartItem = user.cart.find((cartItem) => cartItem._id.toString() === itemId);
+  
+	  if (!existingCartItem) {
+		return res.status(404).json({ error: 'Menu item not found in the user\'s cart' });
+	  }
+  
+	  // Check if the request includes a status field in the JSON body
+	  const newStatus = req.body.status;
+  
+	  if (!newStatus) {
+		return res.status(400).json({ error: 'Status field is required in the request body' });
+	  }
+  
+	  // Update the status of the item
+	  existingCartItem.status = newStatus;
+  
+	  // Save the updated user object to the database
+	  await user.save();
+  
+	  // Return the updated user object
+	  res.json(user);
+	} catch (error) {
+	  console.error('Error:', error);
+	  res.status(500).send('Something Went Wrong');
+	}
+  });
+  
+
   
   
 
