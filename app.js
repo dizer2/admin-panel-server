@@ -321,8 +321,35 @@ app.get('/menu-items/:id', async (req, res) => {
 	}
   });
   
+  app.post("/change-iteam/:itemId", async (req, res) => {
+	const itemId = req.params.itemId;
+  
+	try {
+	  const thisItem = await MenuItem.findOne({ _id: itemId });
+
+	  const { name, description, price } = req.body;
 
   
+	  if (!thisItem) {
+		return res.status(404).json({ error: 'Menu item not found' });
+	  }
+  
+	  thisItem.name = name;
+	  thisItem.description = description;
+	  thisItem.price = price;
+  
+	  // Save the updated menu item to the database
+	  await thisItem.save();
+  
+	  res.json({ message: 'Menu item updated successfully', updatedMenuItem: thisItem });
+	} catch (error) {
+	  console.error(`Error: ${error}`);
+	  res.status(500).send('Something Went Wrong');
+	}
+  });
+  
+ 
+
   
 
 app.listen(5000);
