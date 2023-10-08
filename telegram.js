@@ -44,8 +44,6 @@ async function sendItemToTelegram(chatId) {
 }
 
 
-
-
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
@@ -143,7 +141,6 @@ bot.onText(/\/changeItem/, (msg) => {
 
   bot.on('text', async (msg) => {
     if (msg.from.id === userId) {
-      // Отримуємо введений ID
       const itemId = msg.text.trim();
 
 
