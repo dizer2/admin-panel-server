@@ -56,7 +56,7 @@ bot.onText(/\/start/, (msg) => {
     },
   };
 
-  bot.sendMessage(chatId, 'Please select one command 😁 \n 1) /getUsers \n 2) /getMenu \n 3) /addItem \n 4) /changeItem \n 5) /changeStatus', keyboard);
+  bot.sendMessage(chatId, 'Please select one command 😁 \n 1) /getUsers \n 2) /getMenu \n 3) /addItem \n 4) /changeItem \n 5) /changeStatus \n 6) /removeItem', keyboard);
 });
 
 bot.onText(/\/getUsers/, (msg) => {
@@ -268,3 +268,29 @@ bot.onText(/\/changeStatus/, (msg) => {
 });
 
 
+bot.onText(/\/removeItem/, (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  
+  bot.sendMessage(chatId, 'Please enter the ID of the item you want to remove:');
+
+  bot.on('text', async (msg) => {
+    if (msg.from.id === userId) {
+      const itemId = msg.text.trim();
+
+      try {
+        const removedItem = await MenuItem.findByIdAndRemove(itemId);
+        if (removedItem) {
+          bot.sendMessage(chatId, 'Item removed successfully.');
+        } else {
+          bot.sendMessage(chatId, 'Item with the specified ID not found.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        bot.sendMessage(chatId, 'Failed to remove the item.');
+      }
+
+      bot.removeListener('text');
+    }
+  });
+});
