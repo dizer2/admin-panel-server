@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const db = mongoose.connection;
 
+
 console.log(process.env.DB_URL);
 mongoose.connect(process.env.DB_URL, {
   useNewUrlParser: true,
@@ -347,9 +348,14 @@ app.get('/menu-items/:id', async (req, res) => {
 	  res.status(500).send('Something Went Wrong');
 	}
   });
-  
- 
 
   
 
 app.listen(5000);
+
+
+module.exports = {
+	User,
+	MenuItem
+};
+  
