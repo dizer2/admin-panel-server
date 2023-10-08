@@ -49,7 +49,6 @@ async function sendItemToTelegram(chatId) {
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
-  // Define the keyboard with a "Start" button
   const keyboard = {
     reply_markup: {
       keyboard: [["/start"]],
@@ -57,7 +56,7 @@ bot.onText(/\/start/, (msg) => {
     },
   };
 
-  bot.sendMessage(chatId, 'Please select one command 😁 \n 1) /getUsers \n 2) /getMenu \n 3) /addItem \n 4) /changeItem', keyboard);
+  bot.sendMessage(chatId, 'Please select one command 😁 \n 1) /getUsers \n 2) /getMenu \n 3) /addItem \n 4) /changeItem \n 5) /changeStatus', keyboard);
 });
 
 bot.onText(/\/getUsers/, (msg) => {
@@ -141,52 +140,42 @@ bot.onText(/\/changeItem/, (msg) => {
 
   bot.sendMessage(chatId, 'Please enter the ID of the menu item you want to change:');
 
-  // Створюємо обробник події для отримання ID
+
   bot.on('text', async (msg) => {
     if (msg.from.id === userId) {
       // Отримуємо введений ID
       const itemId = msg.text.trim();
 
-      // Перевірка, чи існує елемент меню з введеним ID
+
       menuItemToUpdate = await MenuItem.findById(itemId);
       if (menuItemToUpdate) {
-        // Якщо ID знайдено, виводимо інформацію про елемент меню
         bot.sendMessage(chatId, `Menu Item ID: ${menuItemToUpdate._id}\nName: ${menuItemToUpdate.name}\nDescription: ${menuItemToUpdate.description}\nPrice: ${menuItemToUpdate.price}`);
         bot.sendMessage(chatId, 'Please enter the new name for the menu item:');
         
-        // Видаляємо обробник події для тексту
         bot.removeListener('text');
         
-        // Створюємо обробник події для введення нового значення name
         bot.on('text', (msg) => {
           if (msg.from.id === userId && menuItemToUpdate) {
-            // Отримуємо нове значення name
             const newName = msg.text.trim();
             menuItemToUpdate.name = newName;
             bot.sendMessage(chatId, 'Please enter the new description for the menu item:');
             
-            // Видаляємо обробник події для тексту
             bot.removeListener('text');
             
-            // Створюємо обробник події для введення нового значення description
             bot.on('text', (msg) => {
               if (msg.from.id === userId && menuItemToUpdate) {
-                // Отримуємо нове значення description
+
                 const newDescription = msg.text.trim();
                 menuItemToUpdate.description = newDescription;
                 bot.sendMessage(chatId, 'Please enter the new price for the menu item:');
                 
-                // Видаляємо обробник події для тексту
                 bot.removeListener('text');
                 
-                // Створюємо обробник події для введення нового значення price
                 bot.on('text', async (msg) => {
                   if (msg.from.id === userId && menuItemToUpdate) {
-                    // Отримуємо нове значення price
                     const newPrice = parseFloat(msg.text.trim());
                     menuItemToUpdate.price = newPrice;
 
-                    // Зберігаємо оновлені дані в базі даних
                     try {
                       const updatedMenuItem = await menuItemToUpdate.save();
                       bot.sendMessage(chatId, 'Menu item updated successfully.');
@@ -196,7 +185,6 @@ bot.onText(/\/changeItem/, (msg) => {
                       bot.sendMessage(chatId, 'Failed to update the menu item.');
                     }
 
-                    // Видаляємо всі обробники подій
                     bot.removeListener('text');
                   }
                 });
@@ -207,9 +195,76 @@ bot.onText(/\/changeItem/, (msg) => {
       } else {
         bot.sendMessage(chatId, 'Menu item with the specified ID not found.');
         
-        // Видаляємо обробники подій для тексту
         bot.removeListener('text');
       }
     }
   });
 });
+
+
+bot.onText(/\/changeStatus/, (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  let targetUser = null;
+
+  bot.sendMessage(chatId, 'Please enter the user ID:');
+
+  bot.on('text', async (msg) => {
+    if (msg.from.id === userId) {
+      const targetUserId = msg.text.trim();
+
+      targetUser = await User.findById(targetUserId);
+
+      if (targetUser) {
+        bot.sendMessage(chatId, `User ID: ${targetUser._id}\nLogin: ${targetUser.login}\nCart: ${targetUser.cart}`);
+        bot.sendMessage(chatId, 'Please enter the ID of the item in the user\'s cart to change its status:');
+        
+        bot.removeListener('text');
+        
+        bot.on('text', async (msg) => {
+          if (msg.from.id === userId) {
+            const itemId = msg.text.trim();
+
+            const cartItem = targetUser.cart.id(itemId);
+
+            if (cartItem) {
+              bot.sendMessage(chatId, `Item ID: ${cartItem._id}\nName: ${cartItem.name}\nStatus: ${cartItem.status}`);
+              bot.sendMessage(chatId, 'Please enter the new status for the item:');
+              
+              bot.removeListener('text');
+              
+              bot.on('text', async (msg) => {
+                if (msg.from.id === userId) {
+                  const newStatus = msg.text.trim();
+                  cartItem.status = newStatus;
+
+                  try {
+                    await targetUser.save();  
+                    bot.sendMessage(chatId, 'Item status updated successfully.');
+                    bot.sendMessage(chatId, `Updated Item ID: ${cartItem._id}\nName: ${cartItem.name}\nStatus: ${cartItem.status}`);
+
+                  } catch (error) {
+                    console.error('Error:', error);
+                    bot.sendMessage(chatId, 'Failed to update the item status.');
+                  }
+
+                  bot.removeListener('text');
+                }
+              });
+            } else {
+              bot.sendMessage(chatId, 'Item with the specified ID not found in the user\'s cart.');
+              
+              bot.removeListener('text');
+            }
+          }
+        });
+      } else {
+        bot.sendMessage(chatId, 'User with the specified ID not found.');
+        
+        bot.removeListener('text');
+      }
+    }
+  });
+});
+
+
